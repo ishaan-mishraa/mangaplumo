@@ -109,7 +109,7 @@ export default function SearchBar({ sites, onDownloaded }) {
           onChange={e => setUrl(e.target.value)}
         />
         <button
-          className="bg-blue-600 px-6 rounded-r-lg cursor-pointer hover:bg-blue-600 text-white"
+          className="bg-blue-600 px-6 rounded-r-lg cursor-pointer hover:bg-blue-800 text-white"
           onClick={fetchSeries}
         >
           Fetch Series
