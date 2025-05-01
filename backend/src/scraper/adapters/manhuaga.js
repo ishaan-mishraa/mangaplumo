@@ -1,7 +1,8 @@
 /**
  * Given a chapter URL & a Puppeteer instance, return its image URLs.
  */
-import puppeteer from 'puppeteer';
+const puppeteer = require('puppeteer');
+
 async function safeGoto(page, url, retries = 3) {
     for (let i = 0; i < retries; i++) {
       try {
