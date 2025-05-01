@@ -33,7 +33,7 @@ jobs:
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
             -H "Accept: application/json" \
-            "https://api.render.com/deploy/srv-xxxxxxxxxxxxxxxxxxxx"
+            "https://api.render.com/deploy/srv-d09k9mggjchc739688tg"
 
   build-and-deploy-frontend:
     runs-on: ubuntu-latest
