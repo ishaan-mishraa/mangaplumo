@@ -118,14 +118,13 @@ export default function SearchBar({ sites, onDownloaded }) {
 
       {/* Quick site buttons */}
       <div className="grid grid-cols-4 gap-4 mt-6">
-        {sites.map(s => (
-          <SiteCard
-          key={s?.name ?? s.homepage}
-          site={s}
-          onClick={() => setUrl(s.homepage)}
-        />
-        
-        ))}
+      {sites.filter(Boolean).map(s => (
+    <SiteCard
+    key={s?.name ?? s.homepage ?? Math.random()}
+    site={s}
+    onClick={() => setUrl(s?.homepage || '')}
+    />
+    ))}     
       </div>
 
       {/* Series list (only if root URL was fetched) */}
