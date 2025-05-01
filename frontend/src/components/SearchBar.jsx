@@ -17,7 +17,7 @@ export default function SearchBar({ sites, onDownloaded }) {
     setActiveSeries(s);
     try {
       const res = await axios.post(
-        'http://localhost:4000/api/manga/chapters',
+        'http://mangaplumo.onrender.com/api/manga/chapters',
         { seriesUrl: s.url }
       );
       setChapters(res.data);
@@ -48,7 +48,7 @@ export default function SearchBar({ sites, onDownloaded }) {
       // === Site root: list all series
       try {
         const res = await axios.post(
-          'http://localhost:4000/api/manga/series',
+          'http://mangaplumo.onrender.com/api/manga/series',
           { siteUrl: url }
         );
         setSeriesList(res.data);
@@ -68,7 +68,7 @@ export default function SearchBar({ sites, onDownloaded }) {
   async function handleDownload(selectedChapters) {
     try {
       const resp = await axios.post(
-        'http://localhost:4000/api/manga/download',
+        'http://mangaplumo.onrender.com/api/manga/download',
         {
           seriesUrl: activeSeries.url,
           chapters: selectedChapters
