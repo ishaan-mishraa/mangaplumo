@@ -10,25 +10,30 @@ export default function App() {
   const [recent, setRecent] = useState([]);
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_API_URL}/series`, payload)
+    axios.get('https://mangaplumo.onrender.com/api/manga/sites')
       .then(r => setSites(r.data))
       .catch(console.error);
-    // load recent from localStorage
-    setRecent(JSON.parse(localStorage.getItem('recent')||'[]'));
+
+    // Load recent from localStorage
+    setRecent(JSON.parse(localStorage.getItem('recent') || '[]'));
   }, []);
 
   function onDownloaded(item) {
-    setRecent(r=>{ const nr = [item,...r].slice(0,6); localStorage.setItem('recent',JSON.stringify(nr)); return nr; });
+    setRecent(r => {
+      const nr = [item, ...r].slice(0, 6);
+      localStorage.setItem('recent', JSON.stringify(nr));
+      return nr;
+    });
   }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <Header />
       <main className="p-4 max-w-5xl mx-auto">
-        <SearchBar sites={sites} onDownloaded={onDownloaded}/>
+        <SearchBar sites={sites} onDownloaded={onDownloaded} />
         <SiteCard/>
         <h2 className="mt-8 text-xl">Recently downloaded</h2>
-        <RecentGrid items={recent}/>
+        <RecentGrid items={recent} />
       </main>
     </div>
   );
