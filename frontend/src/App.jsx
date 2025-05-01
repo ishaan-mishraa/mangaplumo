@@ -10,7 +10,7 @@ export default function App() {
   const [recent, setRecent] = useState([]);
 
   useEffect(() => {
-    axios.get('http://localhost:4000/api/manga/sites')
+    axios.get(`${import.meta.env.VITE_API_URL}/series`, payload)
       .then(r => setSites(r.data))
       .catch(console.error);
     // load recent from localStorage
@@ -26,6 +26,7 @@ export default function App() {
       <Header />
       <main className="p-4 max-w-5xl mx-auto">
         <SearchBar sites={sites} onDownloaded={onDownloaded}/>
+        <SiteCard/>
         <h2 className="mt-8 text-xl">Recently downloaded</h2>
         <RecentGrid items={recent}/>
       </main>
