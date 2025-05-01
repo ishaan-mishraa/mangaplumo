@@ -36,7 +36,14 @@ router.post('/chapters', async (req, res) => {
 router.post('/download', async (req, res) => {
     try {
       const { seriesUrl, chapters } = req.body;
-      const [firstPdf] = await downloadChapters(seriesUrl, chapters);
+      const result = await downloadChapters(seriesUrl, chapters);
+  
+      if (!result || !result.length || !result[0]?.fileName || !result[0]?.data) {
+        console.error("🛑 downloadChapters returned invalid result:", result);
+        return res.status(500).json({ error: "Failed to download chapter(s)." });
+      }
+  
+      const [firstPdf] = result;
   
       res
         .set('Content-Type', 'application/pdf')
@@ -44,9 +51,10 @@ router.post('/download', async (req, res) => {
         .send(Buffer.from(firstPdf.data));
     } catch (err) {
       console.error('[ /api/manga/download ] error:', err);
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: err.message || "Unexpected server error" });
     }
   });
+  
   
   
 
