@@ -1,5 +1,3 @@
-// backend/src/scraper/scraper.js
-
 const { PDFDocument } = require('pdf-lib');
 const sharp = require('sharp');
 const axios = require('axios');
@@ -7,25 +5,21 @@ const ora = require('ora');
 const cliProgress = require('cli-progress');
 const puppeteer = require('puppeteer');
 
-// load your two adapters
 const adapters = [
   require('./adapters/manhuaga'),
   require('./adapters/manhuafast')
 ];
 
-// list supported sites for frontend cards
 function listSites() {
   return adapters.map(a => ({ name: a.name }));
 }
 
-// pick the right adapter for a given URL
 function findAdapter(url) {
   const a = adapters.find(a => a.supports(url));
   if (!a) throw new Error('No adapter for ' + url);
   return a;
 }
 
-// list manga series
 async function listSeries(siteUrl) {
   const adapter = findAdapter(siteUrl);
   if (typeof adapter.fetchMangaList !== 'function') {
@@ -40,7 +34,6 @@ async function listSeries(siteUrl) {
   }
 }
 
-// list chapters
 async function listChapters(seriesUrl) {
   const adapter = findAdapter(seriesUrl);
   if (typeof adapter.fetchChapterList !== 'function') {
@@ -55,11 +48,13 @@ async function listChapters(seriesUrl) {
   }
 }
 
-// download selected chapters
-// returns Array<{ title, fileName, data: Uint8Array }>
 async function downloadChapters(seriesUrl, chapters) {
   const adapter = findAdapter(seriesUrl);
-  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox'],
+    defaultViewport: null
+  });
   const results = [];
 
   for (const ch of chapters) {
@@ -68,14 +63,14 @@ async function downloadChapters(seriesUrl, chapters) {
     let imageUrls;
 
     try {
-      imageUrls = await adapter.fetchPageImageUrls(ch.url, browser);
+      imageUrls = await adapter.fetchPageImageUrls(ch.url, browser, { timeout: 60000 }); // if adapter supports options
+      if (!imageUrls || imageUrls.length === 0) throw new Error('No images returned');
       spinner.succeed(`Found ${imageUrls.length} images`);
     } catch (err) {
-      spinner.fail(`Error fetching images for ${ch.title}: ${err.message}`);
+      spinner.fail(`❌ Error fetching images for ${ch.title}: ${err.message}`);
       continue;
     }
 
-    // download and convert to JPEG in-memory
     const bar = new cliProgress.SingleBar({
       format: `📷 ${ch.title} |{bar}| {value}/{total}`,
       hideCursor: true
@@ -85,18 +80,23 @@ async function downloadChapters(seriesUrl, chapters) {
     const jpegBuffers = [];
 
     for (const url of imageUrls) {
-      const { data: rawBuffer } = await axios.get(url, { responseType: 'arraybuffer' });
-      // convert any format to JPEG
-      const jpegBuffer = await sharp(rawBuffer)
-        .jpeg()
-        .toBuffer();
-      jpegBuffers.push(jpegBuffer);
-      bar.increment();
+      try {
+        const { data: rawBuffer } = await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 });
+        const jpegBuffer = await sharp(rawBuffer).jpeg().toBuffer();
+        jpegBuffers.push(jpegBuffer);
+        bar.increment();
+      } catch (err) {
+        console.warn(`⚠️ Failed to download/convert image: ${url} | ${err.message}`);
+      }
     }
 
     bar.stop();
 
-    // build PDF in memory
+    if (jpegBuffers.length === 0) {
+      console.warn(`⚠️ No valid images to create PDF for chapter: ${ch.title}`);
+      continue;
+    }
+
     const pdfDoc = await PDFDocument.create();
     for (const jpegBuffer of jpegBuffers) {
       const jpgImage = await pdfDoc.embedJpg(jpegBuffer);
@@ -106,13 +106,18 @@ async function downloadChapters(seriesUrl, chapters) {
 
     const pdfBytes = await pdfDoc.save();
     results.push({
-      title:    ch.title,
+      title: ch.title,
       fileName: `${safeName}.pdf`,
-      data:     pdfBytes
+      data: pdfBytes
     });
   }
 
   await browser.close();
+
+  if (results.length === 0) {
+    console.error('🛑 downloadChapters returned no PDFs.');
+  }
+
   return results;
 }
 
