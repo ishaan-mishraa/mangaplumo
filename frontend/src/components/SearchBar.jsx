@@ -1,4 +1,3 @@
-// src/components/SearchBar.jsx
 import { useState } from 'react';
 import axios from 'axios';
 import ChapterModal from './ChapterModal';
@@ -11,7 +10,6 @@ export default function SearchBar({ sites, onDownloaded }) {
   const [showModal, setShowModal] = useState(false);
   const [activeSeries, setActiveSeries] = useState(null);
 
-  // Loading states
   const [loadingSeries, setLoadingSeries] = useState(false);
   const [loadingChapters, setLoadingChapters] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -36,15 +34,15 @@ export default function SearchBar({ sites, onDownloaded }) {
   }
 
   async function fetchSeries() {
-    if (!url.trim()) {
-      return alert('Please enter a URL.');
-    }
+    const trimmed = url.trim();
+    if (!trimmed) return alert('Please enter a URL.');
+
     setLoadingSeries(true);
     setSeriesList([]);
     try {
       const res = await axios.post(
         'https://mangaplumo.onrender.com/api/manga/series',
-        { siteUrl: url }
+        { siteUrl: trimmed }
       );
       setSeriesList(res.data);
     } catch (err) {
@@ -96,26 +94,37 @@ export default function SearchBar({ sites, onDownloaded }) {
     }
   }
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') fetchSeries();
+  };
+
   return (
     <div className="mt-6">
-      <div className="flex">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-0">
         <input
-          className="flex-grow p-3 rounded-l-lg bg-gray-700 text-white"
+          className="flex-grow p-3 rounded-lg sm:rounded-l-lg bg-gray-700 text-white"
           placeholder="Paste manga site or series URL here"
           value={url}
           onChange={e => setUrl(e.target.value)}
+          onKeyDown={handleKeyDown}
           disabled={loadingSeries}
         />
         <button
-          className="bg-blue-600 px-6 rounded-r-lg cursor-pointer hover:bg-blue-800 text-white flex items-center"
+          className={`bg-blue-600 px-6 rounded-lg sm:rounded-r-lg text-white flex items-center justify-center ${
+            loadingSeries ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-800'
+          }`}
           onClick={fetchSeries}
           disabled={loadingSeries}
         >
-          {loadingSeries ? 'Loading...' : 'Fetch Series'}
+          {loadingSeries ? (
+            <span className="animate-pulse">Fetching…</span>
+          ) : (
+            'Fetch Series'
+          )}
         </button>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mt-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
         {sites.filter(Boolean).map((s, i) => (
           <SiteCard
             key={s?.name || i}
@@ -128,7 +137,7 @@ export default function SearchBar({ sites, onDownloaded }) {
       {seriesList.length > 0 && (
         <div className="mt-4">
           <h3 className="text-white mb-2">Select a series:</h3>
-          <ul className="list-disc pl-5 text-white">
+          <ul className="list-disc pl-5 text-white space-y-1">
             {seriesList.map(s => (
               <li key={s.url}>
                 <button
@@ -157,4 +166,3 @@ export default function SearchBar({ sites, onDownloaded }) {
     </div>
   );
 }
-
