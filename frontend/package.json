@@ -6,6 +6,8 @@
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.5",
     "axios": "^1.4.0",
+    "framer-motion": "^12.10.6",
+    "lucide-react": "^0.509.0",
     "material-icons": "^1.10.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

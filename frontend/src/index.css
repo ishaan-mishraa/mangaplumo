@@ -1,10 +1,17 @@
 @import "tailwindcss";
 
-.agu-display {
-  font-family: "Agu Display", serif;
-  font-optical-sizing: auto;
-  font-weight: 400;
-  font-style: normal;
-  font-variation-settings:
-    "MORF" 0;
+
+@layer utilities {
+  .glow-text {
+    text-shadow: 0 0 10px #8B5CF6, 0 0 20px #8B5CF6, 0 0 30px #8B5CF6;
+  }
+  
+  .anime-border {
+    @apply relative before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-r before:from-purple-500 before:to-pink-500 before:z-[-1];
+  }
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  color: #fff;
 }

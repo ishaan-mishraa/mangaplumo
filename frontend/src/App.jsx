@@ -1,9 +1,11 @@
+// App.jsx
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Header from './components/Header';
 import SearchBar from './components/SearchBar';
 import SiteCard from './components/SiteCard';
 import RecentGrid from './components/RecentGrid';
+import StarsBackground from './components/StarsBackground';
 
 export default function App() {
   const [sites, setSites] = useState([]);
@@ -27,14 +29,31 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <Header />
-      <main className="p-4 max-w-5xl mx-auto">
+    <div className="min-h-screen relative overflow-hidden">
+      <StarsBackground />
+      
+      <div className="relative z-10 container mx-auto px-4 py-8">
+        <Header />
         <SearchBar sites={sites} onDownloaded={onDownloaded} />
-        <SiteCard/>
-        <h2 className="mt-8 text-xl">Recently downloaded</h2>
-        <RecentGrid items={recent} />
-      </main>
+        
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 my-12">
+          {sites.map(site => (
+            <SiteCard 
+              key={site.name} 
+              site={site}
+            />
+          ))}
+        </div>
+
+        {recent.length > 0 && (
+          <div className="bg-black/30 backdrop-blur-lg rounded-2xl p-6 shadow-xl">
+            <h2 className="text-2xl font-bold mb-6 text-purple-400 glow-text">
+              Recently downloaded
+            </h2>
+            <RecentGrid recent={recent} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
