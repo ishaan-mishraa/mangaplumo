@@ -1,4 +1,3 @@
-// components/SearchBar.jsx
 import { useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import axios from 'axios';
 import ChapterModal from './ChapterModal';
@@ -22,7 +21,7 @@ const SearchBar = forwardRef(({ onDownloaded }, ref) => {
   useImperativeHandle(ref, () => ({
     setAndSearch: (siteUrl) => {
       setUrl(siteUrl);
-      setTimeout(() => fetchSeries(siteUrl), 100); // Small timeout to ensure state updates
+      setTimeout(() => fetchSeries(siteUrl), 100);
     }
   }));
 

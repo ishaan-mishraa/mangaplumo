@@ -1,9 +1,8 @@
-// components/SiteCard.jsx
 import { motion } from 'framer-motion';
 import { ExternalLink, Star } from 'lucide-react';
 
 export default function SiteCard({ site, onSiteSelect }) {
-  if (!site) return null;
+  if (!site) return null; // Handle undefined site
 
   // Function to handle clicking on a site card
   const handleClick = () => {
