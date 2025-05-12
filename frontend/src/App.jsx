@@ -1,5 +1,5 @@
 // App.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Header from './components/Header';
 import SearchBar from './components/SearchBar';
@@ -10,6 +10,7 @@ import StarsBackground from './components/StarsBackground';
 export default function App() {
   const [sites, setSites] = useState([]);
   const [recent, setRecent] = useState([]);
+  const searchBarRef = useRef(null);
 
   useEffect(() => {
     axios.get('https://mangaplumo.onrender.com/api/manga/sites')
@@ -28,19 +29,27 @@ export default function App() {
     });
   }
 
+  // Function to handle site selection from SiteCard
+  const handleSiteSelect = (siteUrl) => {
+    if (searchBarRef.current) {
+      searchBarRef.current.setAndSearch(siteUrl);
+    }
+  };
+
   return (
     <div className="min-h-screen relative overflow-hidden">
       <StarsBackground />
       
       <div className="relative z-10 container mx-auto px-4 py-8">
         <Header />
-        <SearchBar sites={sites} onDownloaded={onDownloaded} />
+        <SearchBar ref={searchBarRef} onDownloaded={onDownloaded} />
         
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 my-12">
           {sites.map(site => (
             <SiteCard 
               key={site.name} 
               site={site}
+              onSiteSelect={handleSiteSelect}
             />
           ))}
         </div>

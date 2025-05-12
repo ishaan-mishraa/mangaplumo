@@ -1,11 +1,11 @@
 // components/SearchBar.jsx
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import axios from 'axios';
 import ChapterModal from './ChapterModal';
 import { Search, Book, Loader, X, ArrowRight, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function SearchBar({ sites, onDownloaded }) {
+const SearchBar = forwardRef(({ onDownloaded }, ref) => {
   const [url, setUrl] = useState('');
   const [seriesList, setSeriesList] = useState([]);
   const [chapters, setChapters] = useState([]);
@@ -17,6 +17,14 @@ export default function SearchBar({ sites, onDownloaded }) {
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef(null);
+
+  // Expose functions to parent component through ref
+  useImperativeHandle(ref, () => ({
+    setAndSearch: (siteUrl) => {
+      setUrl(siteUrl);
+      setTimeout(() => fetchSeries(siteUrl), 100); // Small timeout to ensure state updates
+    }
+  }));
 
   async function pickSeries(s) {
     setActiveSeries(s);
@@ -36,8 +44,8 @@ export default function SearchBar({ sites, onDownloaded }) {
     }
   }
 
-  async function fetchSeries() {
-    const trimmed = url.trim();
+  async function fetchSeries(manualUrl) {
+    const trimmed = manualUrl || url.trim();
     if (!trimmed) return alert('Please enter a URL.');
     setLoadingSeries(true);
     setSeriesList([]);
@@ -139,7 +147,7 @@ export default function SearchBar({ sites, onDownloaded }) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 px-6 py-4 rounded-r-2xl text-white font-medium flex items-center transition-all duration-300"
-            onClick={fetchSeries}
+            onClick={() => fetchSeries()}
             disabled={loadingSeries}
           >
             {loadingSeries ? (
@@ -253,4 +261,6 @@ export default function SearchBar({ sites, onDownloaded }) {
       )}
     </div>
   );
-}
+});
+
+export default SearchBar;
