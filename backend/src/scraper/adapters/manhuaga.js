@@ -54,31 +54,91 @@ module.exports = {
   },
 
   async fetchChapterList(seriesUrl, browser) {
-    const page = await browser.newPage();
-    await page.setUserAgent('Mozilla/5.0');
-    await safeGoto(page, seriesUrl);
+  const page = await browser.newPage();
+  await page.setUserAgent('Mozilla/5.0');
+  await safeGoto(page, seriesUrl);
 
-    // wait for either old or new chapter selector
-    try {
-      await page.waitForSelector('#chapterlist li', { timeout: 10000 });
-    } catch {
-      console.warn('[manhuaga] fetchChapterList: fallback to generic chapter links');
-    }
-
+  console.log('[manhuaga] Fetching chapters from:', seriesUrl);
+  
+  // Try the specific selector first
+  try {
+    await page.waitForSelector('#chapterlist li', { timeout: 10000 });
+    
     const chapters = await page.$$eval(
-      'a[href*="/manga/"]',
+      '#chapterlist li .eph-num a',
+      (links) => {
+        return links.map(a => ({
+          title: a.textContent.trim() || a.href.split('/').pop().replace(/-/g, ' '),
+          url: a.href,
+          num: a.closest('li')?.getAttribute('data-num') || ''
+        }));
+      }
+    );
+    
+    console.log(`[manhuaga] Found ${chapters.length} chapters with primary selector`);
+    
+    if (chapters.length > 0) {
+      await page.close();
+      return chapters.map((ch, i) => ({ ...ch, title: `Chapter ${ch.num || (i + 1)}` }));
+    }
+  } catch (err) {
+    console.warn('[manhuaga] Primary chapter selector failed:', err.message);
+  }
+
+  // Fallback approach
+  try {
+    console.warn('[manhuaga] Trying fallback chapter selectors');
+    
+    // Try alternative selectors
+    const fallbackSelectors = [
+      '#chapterlist a', 
+      '.eplister a', 
+      '.chbox a'
+    ];
+    
+    for (const selector of fallbackSelectors) {
+      try {
+        await page.waitForSelector(selector, { timeout: 5000 });
+        
+        const chapters = await page.$$eval(
+          selector,
+          (links) => links
+            .filter(a => a.href.includes('/chapter-'))
+            .map(a => ({ title: a.textContent.trim(), url: a.href }))
+        );
+        
+        if (chapters.length > 0) {
+          console.log(`[manhuaga] Found ${chapters.length} chapters with selector: ${selector}`);
+          await page.close();
+          return chapters.map((ch, i) => ({ ...ch, title: `Chapter ${i + 1}` }));
+        }
+      } catch (err) {
+        console.warn(`[manhuaga] Fallback selector ${selector} failed`);
+      }
+    }
+    
+    // Last resort: generic chapter links
+    console.warn('[manhuaga] Trying generic chapter link selector');
+    const chapters = await page.$$eval(
+      'a[href*="/chapter-"]',
       (links) => {
         const seen = new Set();
         return links
-          .filter(a => a.pathname.includes('/chapter'))
-          .map(a => ({ title: a.textContent.trim(), url: a.href }))
+          .map(a => ({ title: a.textContent.trim() || a.href.split('/').pop(), url: a.href }))
           .filter(item => !seen.has(item.url) && seen.add(item.url));
       }
     );
-
+    
+    console.log(`[manhuaga] Found ${chapters.length} chapters with generic selector`);
     await page.close();
-    return chapters.reverse().map((ch, i) => ({ ...ch, title: `Chapter ${i + 1}` }));
-  },
+    return chapters.map((ch, i) => ({ ...ch, title: `Chapter ${i + 1}` }));
+  } catch (err) {
+    console.error('[manhuaga] All chapter fetch attempts failed:', err);
+    await page.close();
+    return [];
+  }
+}
+,
 
   async fetchPageImageUrls(chapterUrl, browser) {
     const page = await browser.newPage();
