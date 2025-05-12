@@ -10,9 +10,31 @@ const adapters = [
   require('./adapters/manhuafast')
 ];
 
-function listSites() {
-  return adapters.map(a => ({ name: a.name }));
+async function launchBrowser() {
+  return puppeteer.launch({
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--disable-gpu'
+    ],
+    defaultViewport: { width: 1280, height: 1024 }
+  });
 }
+
+// Update in scraper.js
+function listSites() {
+  return adapters.map(a => ({ 
+    name: a.name, 
+    url: a.name.includes('manhuafast') ? 'https://manhuafast.net/manga/' : 
+         a.name.includes('manhuaga') ? 'https://manhuaga.com/manga/' : ''
+  }));
+}
+
 
 function findAdapter(url) {
   const a = adapters.find(a => a.supports(url));
@@ -21,28 +43,42 @@ function findAdapter(url) {
 }
 
 async function listSeries(siteUrl) {
+  console.log(`[scraper] Fetching manga list from: ${siteUrl}`);
   const adapter = findAdapter(siteUrl);
   if (typeof adapter.fetchMangaList !== 'function') {
     throw new Error(`Site ${adapter.name} does not support listing series`);
   }
 
-  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+  const browser = await launchBrowser();
   try {
-    return await adapter.fetchMangaList(siteUrl, browser);
+    const result = await adapter.fetchMangaList(siteUrl, browser);
+    console.log(`[scraper] Found ${result.length} manga series`);
+    return result;
+  } catch (err) {
+    console.error(`[scraper] Error in listSeries: ${err.message}`);
+    console.error(err.stack);
+    throw err;
   } finally {
     await browser.close();
   }
 }
 
 async function listChapters(seriesUrl) {
+  console.log(`[scraper] Fetching chapters from: ${seriesUrl}`);
   const adapter = findAdapter(seriesUrl);
   if (typeof adapter.fetchChapterList !== 'function') {
     throw new Error(`Site ${adapter.name} does not support listing chapters`);
   }
 
-  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+  const browser = await launchBrowser();
   try {
-    return await adapter.fetchChapterList(seriesUrl, browser);
+    const result = await adapter.fetchChapterList(seriesUrl, browser);
+    console.log(`[scraper] Found ${result.length} chapters`);
+    return result;
+  } catch (err) {
+    console.error(`[scraper] Error in listChapters: ${err.message}`);
+    console.error(err.stack);
+    throw err;
   } finally {
     await browser.close();
   }
@@ -50,11 +86,7 @@ async function listChapters(seriesUrl) {
 
 async function downloadChapters(seriesUrl, chapters) {
   const adapter = findAdapter(seriesUrl);
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox'],
-    defaultViewport: null
-  });
+  const browser = await launchBrowser();
   const results = [];
 
   for (const ch of chapters) {
@@ -111,13 +143,7 @@ async function downloadChapters(seriesUrl, chapters) {
       data: pdfBytes
     });
   }
-
   await browser.close();
-
-  if (results.length === 0) {
-    console.error('🛑 downloadChapters returned no PDFs.');
-  }
-
   return results;
 }
 
