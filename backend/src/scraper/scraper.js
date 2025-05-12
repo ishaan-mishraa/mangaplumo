@@ -30,8 +30,8 @@ async function launchBrowser() {
 function listSites() {
   return adapters.map(a => ({ 
     name: a.name, 
-    url: a.name.includes('manhuafast') ? 'https://manhuafast.net/manga/' : 
-         a.name.includes('manhuaga') ? 'https://manhuaga.com/manga/' : ''
+    url: a.name.includes('manhuafast') ? 'https://manhuafast.net/' : 
+         a.name.includes('manhuaga') ? 'https://manhuaga.com/' : ''
   }));
 }
 
