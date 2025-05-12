@@ -6,15 +6,29 @@ const puppeteer = require('puppeteer');
 async function safeGoto(page, url, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
-      await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+      // Use domcontentloaded instead of networkidle2
+      // domcontentloaded will trigger once the HTML is parsed, not waiting for all resources
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      
+      // Add a small delay to allow critical scripts to initialize
+      await page.waitForTimeout(2000);
+      
       return;
     } catch (err) {
-      if (i === retries - 1) throw err;
-      console.warn(`[Retry ${i + 1}] Navigation failed for ${url}. Retrying...`);
-      await new Promise(res => setTimeout(res, 2000));
+      console.warn(`[Retry ${i + 1}] Navigation failed for ${url}: ${err.message}`);
+      
+      if (i === retries - 1) {
+        throw err;
+      }
+      
+      // Increase wait time between retries
+      const waitTime = 3000 * (i + 1);
+      console.log(`Waiting ${waitTime}ms before next retry...`);
+      await new Promise(res => setTimeout(res, waitTime));
     }
   }
 }
+
 
 module.exports = {
   name: 'manhuaga.com',
@@ -141,17 +155,105 @@ module.exports = {
 ,
 
   async fetchPageImageUrls(chapterUrl, browser) {
-    const page = await browser.newPage();
-    await page.setUserAgent('Mozilla/5.0');
-    await safeGoto(page, chapterUrl);
-    await page.waitForSelector('#readerarea img.ts-main-image', { timeout: 10000 });
+  console.log(`[manhuaga] Fetching images from: ${chapterUrl}`);
+  const page = await browser.newPage();
+  
+  // Set a more realistic user agent
+  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.84 Safari/537.36');
+  
+  // Disable timeout for navigation
+  await page.setDefaultNavigationTimeout(0);
+  
+  // Block unnecessary resource types to speed up loading
+  await page.setRequestInterception(true);
+  page.on('request', (request) => {
+    const resourceType = request.resourceType();
+    // Block ads, analytics, and other unnecessary resources
+    if (['stylesheet', 'font', 'media', 'texttrack', 'object', 'beacon', 'csp_report', 'imageset'].includes(resourceType)) {
+      request.abort();
+    } else if (resourceType === 'image' && !request.url().includes('.jpg') && !request.url().includes('.png') && !request.url().includes('.gif') && !request.url().includes('.webp')) {
+      // Block small images like ads/trackers but allow manga images
+      request.abort();
+    } else if (resourceType === 'script' && (request.url().includes('ads') || request.url().includes('analytics'))) {
+      request.abort();
+    } else {
+      request.continue();
+    }
+  });
 
-    const urls = await page.$$eval(
+  try {
+    // Use domcontentloaded instead of networkidle2 for faster loading
+    console.log(`[manhuaga] Navigating to chapter page...`);
+    await page.goto(chapterUrl, { waitUntil: 'domcontentloaded' });
+    
+    // Look for the reader area with a generous timeout
+    console.log(`[manhuaga] Waiting for reader area...`);
+    
+    // Try multiple selectors with a fallback approach
+    const imageSelectors = [
       '#readerarea img.ts-main-image',
-      imgs => imgs.map(img => img.src)
-    );
-
+      '#readerarea img',
+      '.reading-content img',
+      '.entry-content img'
+    ];
+    
+    let urls = [];
+    for (const selector of imageSelectors) {
+      try {
+        console.log(`[manhuaga] Trying selector: ${selector}`);
+        
+        // Wait for at least one image to appear
+        await page.waitForSelector(selector, { timeout: 30000 });
+        
+        // Extract image URLs
+        urls = await page.$$eval(
+          selector,
+          imgs => imgs.map(img => img.src || img.getAttribute('data-src'))
+            .filter(src => src && (src.includes('.jpg') || src.includes('.png') || src.includes('.jpeg') || src.includes('.webp')))
+        );
+        
+        if (urls.length > 0) {
+          console.log(`[manhuaga] Found ${urls.length} images with selector: ${selector}`);
+          break;
+        }
+      } catch (err) {
+        console.warn(`[manhuaga] Selector ${selector} failed: ${err.message}`);
+      }
+    }
+    
+    // If no images found with standard selectors, try a last-resort approach
+    if (urls.length === 0) {
+      console.log(`[manhuaga] No images found with standard selectors, trying generic image tags...`);
+      
+      // Evaluate any image on the page that might be a manga page
+      urls = await page.$$eval(
+        'img',
+        imgs => imgs
+          .filter(img => {
+            const src = img.src;
+            const width = parseInt(img.width || img.getAttribute('width') || 0);
+            // Only include larger images likely to be manga pages (filter out icons/ads)
+            return src && width > 200 && (
+              src.includes('.jpg') || 
+              src.includes('.jpeg') || 
+              src.includes('.png') || 
+              src.includes('.webp')
+            );
+          })
+          .map(img => img.src)
+          .filter(Boolean)
+      );
+      
+      console.log(`[manhuaga] Found ${urls.length} images with generic selector`);
+    }
+    
     await page.close();
     return urls;
+  } catch (err) {
+    console.error(`[manhuaga] Error fetching images: ${err.message}`);
+    await page.close();
+    return [];
   }
+}
+
 };
