@@ -44,14 +44,23 @@ export default function App() {
         <Header />
         <SearchBar ref={searchBarRef} onDownloaded={onDownloaded} />
         
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 my-12">
-          {sites.map(site => (
-            <SiteCard 
-              key={site.name} 
-              site={site}
-              onSiteSelect={handleSiteSelect}
-            />
-          ))}
+        <div className="my-12">
+          <h2 className="text-2xl font-bold mb-6 text-purple-400 glow-text flex items-center">
+            <span className="mr-2">Available Sources</span>
+            <span className="text-sm bg-purple-500/30 px-2 py-1 rounded-full">
+              {sites.length}
+            </span>
+          </h2>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {sites.map(site => (
+              <SiteCard 
+                key={site.name} 
+                site={site}
+                onSiteSelect={handleSiteSelect}
+              />
+            ))}
+          </div>
         </div>
 
         {recent.length > 0 && (

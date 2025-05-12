@@ -1,9 +1,19 @@
 @import "tailwindcss";
 
 
+:root {
+  --purple-glow: 0 0 10px #8B5CF6, 0 0 20px #8B5CF6, 0 0 30px #8B5CF6;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  color: #fff;
+  background-color: #030014;
+}
+
 @layer utilities {
   .glow-text {
-    text-shadow: 0 0 10px #8B5CF6, 0 0 20px #8B5CF6, 0 0 30px #8B5CF6;
+    text-shadow: var(--purple-glow);
   }
   
   .anime-border {
@@ -11,7 +21,23 @@
   }
 }
 
-body {
-  font-family: 'Poppins', sans-serif;
-  color: #fff;
+/* Animated star twinkle effect */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.animate-twinkle {
+  animation: twinkle 2s ease-in-out infinite;
+}
+
+/* Shooting star animation */
+@keyframes shooting {
+  0% { transform: translateX(-100px) translateY(0); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translateX(1500px) translateY(300px); opacity: 0; }
+}
+
+.animate-shooting {
+  animation: shooting 3s linear infinite;
 }
